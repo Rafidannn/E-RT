@@ -1,17 +1,40 @@
-class UserModel {
-  final int idUser;
-  final String nama;
-  final String nik;
-  final String role;
+import 'package:flutter/material.dart';
 
-  UserModel({required this.idUser, required this.nama, required this.nik, required this.role});
+class AppTheme {
+  // Warna utama sesuai desain kamu
+  static const Color primaryGreen = Color(0xFF2D4B1E);
+  static const Color accentOrange = Color(0xFFFFA500);
 
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      idUser: int.parse(json['id_user'].toString()),
-      nama: json['nama'],
-      nik: json['nik'],
-      role: json['role'],
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      primaryColor: primaryGreen,
+      scaffoldBackgroundColor: Colors.white,
+
+      // Mengatur font default atau warna teks
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryGreen,
+        primary: primaryGreen,
+        secondary: accentOrange,
+      ),
+
+      // Pengaturan default untuk AppBar
+      appBarTheme: const AppBarTheme(
+        backgroundColor: primaryGreen,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+      ),
+
+      // Pengaturan default untuk tombol (Button)
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: accentOrange,
+          foregroundColor: Colors.white,
+          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        ),
+      ),
     );
   }
 }

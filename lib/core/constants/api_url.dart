@@ -1,7 +1,7 @@
 class ApiUrl {
   // Pakai IP Wi-Fi laptop lu yang 10.49.210.193
   // Sesuaikan path foldernya (misal /ert/api atau /api_dawis)
-  static const String baseUrl = 'http://10.49.210.193/api';
+  static const String baseUrl = 'http://10.228.36.193/api';
 
   // ===== ENDPOINT =====
   // Ini sudah benar, otomatis ngikutin baseUrl di atas

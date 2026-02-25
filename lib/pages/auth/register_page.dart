@@ -1,49 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../core/api/api_service.dart';
-import '../../core/constants/api_url.dart';
-import '../../models/user_model.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _nikController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
-
-  Future<void> _handleLogin() async {
-    if (_nikController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('NIK dan Password tidak boleh kosong')),
-      );
-      return;
-    }
-    setState(() => _isLoading = true);
-    try {
-      final response = await ApiService.post(ApiUrl.login, {
-        'nik': _nikController.text,
-        'password': _passwordController.text,
-      });
-      if (response['status'] == true || response['status'] == 'success') {
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['message'] ?? 'Login Gagal')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
+  String? _selectedRole;
 
   @override
   Widget build(BuildContext context) {
@@ -54,45 +22,44 @@ class _LoginPageState extends State<LoginPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // BAGIAN LOGO
+            // BAGIAN LOGO (PUTIH)
             Container(
-              height: screenHeight * 0.35,
+              height: screenHeight * 0.3,
               width: double.infinity,
               color: Colors.white,
               child: Center(
                 child: Image.asset(
                   'assets/images/logo_ert.png',
-                  height: 150,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.image, size: 80),
+                  height: 160,
                 ),
               ),
             ),
 
-            // BAGIAN FORM STACK
+            // BAGIAN FORM DENGAN TERTUMPUK (STACK) - ROUNDED KANAN
             Stack(
               children: [
-                // LAYER 1: IJO MUDA
+                // LAYER 1: IJO MUDA (Aksen di Belakang - Rounded Kanan)
                 Container(
                   width: double.infinity,
                   height: 100,
                   decoration: const BoxDecoration(
                     color: Color(0xFF618F3C),
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(80),
+                      topRight: Radius.circular(80), // PINDAH KE KANAN
                     ),
                   ),
                 ),
 
-                // LAYER 2: IJO TUA
+                // LAYER 2: IJO TUA (Konten Utama - Rounded Kanan)
                 Container(
                   margin: const EdgeInsets.only(top: 15),
                   width: double.infinity,
-                  constraints: BoxConstraints(minHeight: screenHeight * 0.65),
+                  constraints: BoxConstraints(minHeight: screenHeight * 0.7),
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
                   decoration: const BoxDecoration(
                     color: Color(0xFF2D4B1E),
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(80),
+                      topRight: Radius.circular(80), // PINDAH KE KANAN
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -106,7 +73,7 @@ class _LoginPageState extends State<LoginPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Login',
+                        'Sign Up',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 36,
@@ -115,48 +82,77 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const Text(
-                        'Login to get your account',
+                        'Sign In to get your account',
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 16,
                           fontFamily: 'RobotoMedium',
                         ),
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 30),
 
+                      // Input Full Name
+                      _buildInput(
+                        controller: _nameController,
+                        hint: 'Enter your Full Name',
+                        icon: Icons.person_outline,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Input NIK
                       _buildInput(
                         controller: _nikController,
-                        hint: 'Enter your NIK',
+                        hint: 'Enter your Nik',
                         icon: Icons.assignment_ind_outlined,
                       ),
                       const SizedBox(height: 20),
 
+                      // Input Password
                       _buildInput(
                         controller: _passwordController,
                         hint: 'Password',
                         icon: Icons.lock_outline,
                         isPassword: true,
                       ),
+                      const SizedBox(height: 20),
 
-                      const SizedBox(height: 40),
+                      // Dropdown Choose Role
+                      _buildDropdown(),
 
-                      // TOMBOL LOGIN ORANGE
+                      const SizedBox(height: 20),
+
+                      // Remember me
+                      Row(
+                        children: [
+                          const Icon(Icons.check_box, color: Colors.white, size: 20),
+                          const SizedBox(width: 8),
+                          const Text(
+                              'Remember me',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'RobotoMedium',
+                              )
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // Tombol Sign Up
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleLogin,
+                          onPressed: () {},
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                             elevation: 5,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           ),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text(
-                              'Login',
+                          child: const Text(
+                              'Sign Up',
                               style: TextStyle(
-                                fontSize: 20,
+                                fontSize: 22,
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: 'RobotoBlack',
@@ -165,28 +161,24 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 25),
 
-                      // FOOTER NAVIGASI
+                      // Footer "or" pindah ke login
                       Row(
                         children: [
                           const Expanded(child: Divider(color: Colors.white38)),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: InkWell(
+                            child: GestureDetector(
                               onTap: () {
-                                Navigator.pushNamed(context, '/register');
+                                Navigator.pushNamed(context, '/login');
                               },
                               child: const Text(
-                                  "Sign Up", // Gue lengkapin biar nggak kepotong
-                                  style: TextStyle(
-                                    color: Colors.orange, // Teks orange biar serasi sama tombol login
-                                    fontFamily: 'RobotoMedium', // Balikin ke Medium biar kebaca, Light kekecilan
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: Colors.orange, // INI BIAR UNDERLINE-NYA BIRU
-                                    decorationThickness: 2, // Biar garis birunya kelihatan tegas
-                                  )
+                                "or",
+                                style: TextStyle(
+                                  color: Colors.white60,
+                                  fontFamily: 'RobotoMedium',
+                                ),
                               ),
                             ),
                           ),
@@ -220,6 +212,35 @@ class _LoginPageState extends State<LoginPage> {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F3F3),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedRole,
+          hint: const Text('Choose your Role', style: TextStyle(color: Colors.grey, fontFamily: 'RobotoMedium')),
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+          items: <String>['Warga', 'Ketua RT', 'Admin'].map((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(value, style: const TextStyle(fontFamily: 'RobotoMedium')),
+            );
+          }).toList(),
+          onChanged: (newValue) {
+            setState(() {
+              _selectedRole = newValue;
+            });
+          },
         ),
       ),
     );
