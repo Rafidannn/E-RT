@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:pie_chart/pie_chart.dart';
 import '../../core/api/api_service.dart';
 import '../../core/constants/api_url.dart';
-import 'package:pie_chart/pie_chart.dart';
 
 class DashboardAdminPage extends StatefulWidget {
   const DashboardAdminPage({super.key});
@@ -13,41 +13,45 @@ class DashboardAdminPage extends StatefulWidget {
 }
 
 class _DashboardAdminPageState extends State<DashboardAdminPage> {
+  // --- STATE DATA ---
   String _namaUser = "Admin";
   String _totalWarga = "0";
   String _totalKeluarga = "0";
-  String _totalLansia = "0"; // Variabel baru buat lansia
-  int _jmlMandiri = 0;
-  int _jmlMadya = 0;
-  int _jmlPrasejahtera = 0;
-  int _totalRasio = 0;
-  double _persentaseRasio = 0.0; // Ini buat CircularProgress
+  String _totalLansia = "0";
+  String _saldoIuran = "1.525.000"; // Nanti bisa tembak API Saldo juga
+
+  int _jmlMandiri = 0, _jmlMadya = 0, _jmlPrasejahtera = 0, _totalRasio = 0;
+  double _persentaseKesejahteraan = 0.0;
+
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    _fetchStats(); // Ambil semua data pas halaman dibuka
     _selectedDay = _focusedDay;
+    _initDashboard();
+  }
+
+  Future<void> _initDashboard() async {
+    await _loadUserData();
+    await _fetchStats();
   }
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _namaUser = prefs.getString('nama_user') ?? "Admin";
-    });
+    setState(() => _namaUser = prefs.getString('nama_user') ?? "Admin");
   }
 
-  // Fungsi sakti buat ambil semua data statistik sekaligus
   Future<void> _fetchStats() async {
+    setState(() => _isLoading = true);
     try {
       final results = await Future.wait([
         ApiService.get(ApiUrl.totalWarga),
         ApiService.get(ApiUrl.totalKeluarga),
         ApiService.get(ApiUrl.totalLansia),
-        ApiService.get("${ApiUrl.baseUrl}/keluarga/get_rasio.php"), // Panggil API rasio
+        ApiService.get("${ApiUrl.baseUrl}/keluarga/get_rasio.php"),
       ]);
 
       if (mounted) {
@@ -56,24 +60,22 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
           if (results[1]['status'] == true) _totalKeluarga = results[1]['total_keluarga'].toString();
           if (results[2]['status'] == true) _totalLansia = results[2]['total_lansia'].toString();
 
-          // Logika itung Rasio
           if (results[3]['status'] == true) {
             var data = results[3]['data'];
-            _jmlMandiri = data['mandiri'];
-            _jmlMadya = data['madya'];
-            _jmlPrasejahtera = data['prasejahtera'];
-            _totalRasio = data['total'];
-
-            // Itung persentase (Mandiri + Madya dibagi Total)
-            // Biar chart-nya nampilin tingkat kesejahteraan
+            _jmlMandiri = data['mandiri'] ?? 0;
+            _jmlMadya = data['madya'] ?? 0;
+            _jmlPrasejahtera = data['prasejahtera'] ?? 0;
+            _totalRasio = data['total'] ?? 0;
             if (_totalRasio > 0) {
-              _persentaseRasio = (_jmlMandiri + _jmlMadya) / _totalRasio;
+              _persentaseKesejahteraan = (_jmlMandiri + _jmlMadya) / _totalRasio;
             }
           }
         });
       }
     } catch (e) {
-      debugPrint("Error Stats: $e");
+      debugPrint("Error Dashboard Stats: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -83,47 +85,69 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
       backgroundColor: const Color(0xFFF5F5F5),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildNewHeader(_namaUser),
-                _buildCalendarCard(),
-                const SizedBox(height: 10),
-                _buildHorizontalStats(), // Sekarang angka di sini dinamis
-                _buildRasioKeluargaCard(),
-                _buildMenuGrid(context),
-                _buildRecentActivity(),
-                const SizedBox(height: 100),
-              ],
+          RefreshIndicator(
+            onRefresh: _fetchStats,
+            color: const Color(0xFF2D4B1E),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // 1. HEADER HIJAU DENGAN SEARCH BAR
+                  _buildHeader(_namaUser),
+
+                  // 2. KALENDER CARD
+                  _buildCalendarCard(),
+
+                  // 3. STATISTIK HORIZONTAL (ANGKA DINAMIS)
+                  _buildHorizontalStats(),
+
+                  // 4. RASIO KELUARGA DENGAN PIE CHART
+                  _buildRasioKeluargaCard(),
+
+                  // 5. MENU GRID UTAMA
+                  _buildMenuGrid(context),
+
+                  // 6. AKTIVITAS TERBARU
+                  _buildRecentActivity(),
+
+                  const SizedBox(height: 120), // Spacer Navbar
+                ],
+              ),
             ),
           ),
-          Positioned(bottom: 0, left: 0, right: 0, child: _buildBottomNavbar()),
+
+          // 7. BOTTOM NAVBAR
+          Positioned(bottom: 0, left: 0, right: 0, child: _buildBottomNavbar(context)),
         ],
       ),
     );
   }
 
-  Widget _buildNewHeader(String nama) {
+  // --- WIDGET COMPONENTS ---
+
+  Widget _buildHeader(String nama) {
     return Container(
-      padding: const EdgeInsets.only(top: 60, left: 25, right: 25, bottom: 20),
+      padding: const EdgeInsets.only(top: 60, left: 25, right: 25, bottom: 30),
       decoration: const BoxDecoration(
         color: Color(0xFF2D4B1E),
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(35), bottomRight: Radius.circular(35)),
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.settings, color: Colors.white),
-              Text('Selamat Datang, $nama', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
-              const Icon(Icons.notifications, color: Colors.white),
+              const Icon(Icons.settings_outlined, color: Colors.white),
+              Text(
+                'Selamat Datang, $nama',
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+              ),
+              const Icon(Icons.notifications_none, color: Colors.white),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 25),
           TextField(
             decoration: InputDecoration(
-              hintText: "Cari warga...",
+              hintText: "Cari data warga atau keluarga...",
               prefixIcon: const Icon(Icons.search, color: Colors.grey),
               filled: true,
               fillColor: Colors.white,
@@ -138,8 +162,8 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
 
   Widget _buildCalendarCard() {
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(15),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(color: const Color(0xFF8CAF5D), borderRadius: BorderRadius.circular(25)),
       child: TableCalendar(
         firstDay: DateTime.utc(2020, 1, 1),
@@ -148,8 +172,8 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
         selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
         onDaySelected: (selectedDay, focusedDay) => setState(() { _selectedDay = selectedDay; _focusedDay = focusedDay; }),
         calendarStyle: const CalendarStyle(
-          defaultTextStyle: TextStyle(color: Colors.white),
-          weekendTextStyle: TextStyle(color: Colors.white70),
+          defaultTextStyle: TextStyle(color: Colors.white, fontSize: 12),
+          weekendTextStyle: TextStyle(color: Colors.white70, fontSize: 12),
           todayDecoration: BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
           selectedDecoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
           selectedTextStyle: TextStyle(color: Color(0xFF2D4B1E), fontWeight: FontWeight.bold),
@@ -161,6 +185,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
           leftChevronIcon: Icon(Icons.chevron_left, color: Colors.white),
           rightChevronIcon: Icon(Icons.chevron_right, color: Colors.white),
         ),
+        daysOfWeekStyle: const DaysOfWeekStyle(weekdayStyle: TextStyle(color: Colors.white), weekendStyle: TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -168,62 +193,59 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
   Widget _buildHorizontalStats() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.only(left: 20, bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         children: [
-          _buildStatBox(Icons.people_outline, _totalWarga, "Total Warga"),
-          _buildStatBox(Icons.home_outlined, _totalKeluarga, "Total Keluarga"),
-          _buildStatBox(Icons.favorite_border, _totalLansia, "Lansia Terdata"), // Dinamis
-          _buildStatBox(Icons.wallet, "1.525.000", "Saldo Iuran"),
+          _buildStatBox(Icons.people_outline, _totalWarga, "Total Warga", '/manage_warga'),
+          _buildStatBox(Icons.home_outlined, _totalKeluarga, "Total Keluarga", '/manage_keluarga'),
+          _buildStatBox(Icons.favorite_border, _totalLansia, "Lansia Terdata", '/manage_warga'),
+          _buildStatBox(Icons.account_balance_wallet_outlined, _saldoIuran, "Saldo Iuran", '/manage_iuran'),
         ],
       ),
     );
   }
 
-  Widget _buildStatBox(IconData icon, String val, String label) {
-    return Container(
-      width: 130,
-      margin: const EdgeInsets.only(right: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Colors.black54),
-          const SizedBox(height: 10),
-          Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        ],
+  Widget _buildStatBox(IconData icon, String val, String label, String route) {
+    return InkWell(
+      onTap: () => Navigator.pushNamed(context, route),
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.only(right: 15),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 5))]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: const Color(0xFF2D4B1E), size: 30),
+            const SizedBox(height: 10),
+            Text(val, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(label, style: const TextStyle(color: Colors.black54, fontSize: 11)),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildRasioKeluargaCard() {
-    // Map data buat dikirim ke PieChart
     Map<String, double> dataMap = {
       "Mandiri": _jmlMandiri.toDouble(),
       "Madya": _jmlMadya.toDouble(),
       "Prasejahtera": _jmlPrasejahtera.toDouble(),
     };
 
-    // List warna sesuai desain lu
-    final colorList = <Color>[
-      const Color(0xFF2D4B1E), // Hijau Tua
-      const Color(0xFF8CAF5D), // Hijau Muda
-      Colors.orange,           // Orange
-    ];
+    final colorList = <Color>[const Color(0xFF2D4B1E), const Color(0xFF8CAF5D), Colors.orange];
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)]),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Rasio Keluarga", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text("Rasio Keluarga", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 15),
                 _buildLegend(colorList[0], "Mandiri ($_jmlMandiri)"),
                 _buildLegend(colorList[1], "Madya ($_jmlMadya)"),
@@ -231,22 +253,17 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
               ],
             ),
           ),
-          // Ganti CircularProgressIndicator dengan PieChart
           SizedBox(
-            height: 100,
-            width: 100,
+            height: 100, width: 100,
             child: PieChart(
               dataMap: dataMap,
-              animationDuration: const Duration(milliseconds: 800),
-              chartLegendSpacing: 0,
-              chartRadius: 80,
               colorList: colorList,
-              initialAngleInDegree: 0,
-              chartType: ChartType.ring, // Pakai ring biar tengahnya bolong
+              chartType: ChartType.ring,
               ringStrokeWidth: 12,
-              legendOptions: const LegendOptions(showLegends: false), // Sembunyiin legend bawaan
-              chartValuesOptions: const ChartValuesOptions(showChartValues: false), // Sembunyiin angka di dalem chart
-              centerText: "${(_persentaseRasio * 100).toInt()}%", // Persen di tengah
+              chartRadius: 80,
+              legendOptions: const LegendOptions(showLegends: false),
+              chartValuesOptions: const ChartValuesOptions(showChartValues: false),
+              centerText: "${(_persentaseKesejahteraan * 100).toInt()}%",
               centerTextStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black),
             ),
           ),
@@ -256,36 +273,49 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
   }
 
   Widget _buildLegend(Color c, String t) {
-    return Row(children: [Container(width: 10, height: 10, color: c), const SizedBox(width: 5), Text(t, style: const TextStyle(fontSize: 10))]);
-  }
-
-  Widget _buildMenuGrid(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 4,
-      padding: const EdgeInsets.all(20),
-      children: [
-        _buildMenuIcon(context, Icons.person, "Data Warga", '/manage_warga'),
-        _buildMenuIcon(context, Icons.people, "Data Keluarga", '/manage_keluarga'),
-        _buildMenuIcon(context, Icons.wallet, "Input Iuran", '/manage_iuran'),
-        _buildMenuIcon(context, Icons.verified_user, "Verifikasi", '/verifikasi'),
-        _buildMenuIcon(context, Icons.home_work, "Posyandu", '/posyandu'),
-        _buildMenuIcon(context, Icons.assignment, "Jumantik", '/riwayat_jumantik'),
-        _buildMenuIcon(context, Icons.campaign, "Info RT", '/riwayat_pengumuman'),
-        _buildMenuIcon(context, Icons.description, "Rekap", '/rekap'),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(children: [Container(width: 12, height: 12, color: c), const SizedBox(width: 8), Text(t, style: const TextStyle(fontSize: 11))]),
     );
   }
 
-  Widget _buildMenuIcon(BuildContext context, IconData icon, String label, String route) {
+  Widget _buildMenuGrid(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 4,
+        mainAxisSpacing: 20,
+        crossAxisSpacing: 10,
+        childAspectRatio: 0.8,
+        children: [
+          _buildMenuIcon(Icons.person_outline, "Data Warga", '/manage_warga'),
+          _buildMenuIcon(Icons.people_outline, "Data Keluarga", '/manage_keluarga'),
+          _buildMenuIcon(Icons.account_balance_wallet_outlined, "Input Iuran", '/manage_iuran'),
+          _buildMenuIcon(Icons.verified_user_outlined, "Verifikasi", '/verifikasi'),
+          _buildMenuIcon(Icons.home_work_outlined, "Posyandu", '/posyandu'),
+          _buildMenuIcon(Icons.assignment_outlined, "Jumantik", '/riwayat_jumantik'),
+          _buildMenuIcon(Icons.campaign_outlined, "Info RT", '/riwayat_pengumuman'),
+          _buildMenuIcon(Icons.description_outlined, "Rekap", '/rekap'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuIcon(IconData icon, String label, String route) {
     return InkWell(
       onTap: () => Navigator.pushNamed(context, route),
+      borderRadius: BorderRadius.circular(12),
       child: Column(
         children: [
-          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF8CAF5D), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: Colors.white)),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: const Color(0xFF8CAF5D), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: Colors.white, size: 28),
+          ),
           const SizedBox(height: 5),
-          Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+          Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -293,12 +323,12 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
 
   Widget _buildRecentActivity() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 25),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text("Recent Activity", style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 15),
           _buildActivityCard(Icons.wallet, "Kel. Budi membayar iuran Maret.", Colors.orange),
           _buildActivityCard(Icons.person_add, "Warga Baru (Andi) perlu verifikasi.", Colors.blue),
         ],
@@ -308,19 +338,27 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
 
   Widget _buildActivityCard(IconData icon, String text, Color color) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(15)),
-      child: Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 10), Expanded(child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)))]),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(15)),
+      child: Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 15), Expanded(child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)))]),
     );
   }
 
-  Widget _buildBottomNavbar() {
+  Widget _buildBottomNavbar(BuildContext context) {
     return Container(
-      height: 70,
+      height: 80,
       margin: const EdgeInsets.all(15),
       decoration: BoxDecoration(color: const Color(0xFF2D4B1E), borderRadius: BorderRadius.circular(30)),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: const [Icon(Icons.home, color: Colors.white), Icon(Icons.people_outline, color: Colors.white54), Icon(Icons.wallet_outlined, color: Colors.white54), Icon(Icons.person_outline, color: Colors.white54)]),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          const Icon(Icons.home, color: Colors.white, size: 28),
+          IconButton(icon: const Icon(Icons.people_outline, color: Colors.white70), onPressed: () => Navigator.pushNamed(context, '/manage_warga')),
+          IconButton(icon: const Icon(Icons.account_balance_wallet_outlined, color: Colors.white70), onPressed: () => Navigator.pushNamed(context, '/manage_iuran')),
+          const Icon(Icons.person_outline, color: Colors.white70),
+        ],
+      ),
     );
   }
 }
