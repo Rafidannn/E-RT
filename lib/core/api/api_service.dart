@@ -1,28 +1,29 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart'; // Buat debugPrint
 
 class ApiService {
-  // Fungsi GET
   static Future<dynamic> get(String endpoint) async {
     try {
+      // TAMBAHIN PRINT INI BIAR KITA TAU DIA NEMBAK MANA
+      debugPrint("Mencoba akses: $endpoint");
+
       final response = await http.get(
         Uri.parse(endpoint),
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: {'Accept': 'application/json'},
       );
 
+      debugPrint("Hasil Body: ${response.body}");
       return _handleResponse(response);
     } catch (e) {
+      // PRINT ERROR ASLINYA BIAR KELIATAN DI TERMINAL
+      debugPrint("LOG ERROR ASLI: $e");
       throw Exception('Gagal nyambung ke server (GET): $e');
     }
   }
 
-  // Fungsi POST
-  static Future<dynamic> post(
-      String endpoint,
-      Map<String, dynamic> body,
-      ) async {
+  // ... (Fungsi POST & _handleResponse tetep sama kayak punya lu) ...
+  static Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
     try {
       final response = await http.post(
         Uri.parse(endpoint),
@@ -32,20 +33,17 @@ class ApiService {
         },
         body: json.encode(body),
       );
-
       return _handleResponse(response);
     } catch (e) {
+      debugPrint("LOG ERROR POST: $e");
       throw Exception('Gagal nyambung ke server (POST): $e');
     }
   }
 
-  // Helper biar nggak nulis if-else berulang-ulang
   static dynamic _handleResponse(http.Response response) {
-    // Nerima status code 200 sampe 299 (Success range)
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return json.decode(response.body);
     } else {
-      // Keluarin body error-nya biar lu tau salahnya di mana
       throw Exception('Error ${response.statusCode}: ${response.body}');
     }
   }

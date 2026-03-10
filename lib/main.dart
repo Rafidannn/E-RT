@@ -1,5 +1,9 @@
 import 'package:ert/pages/dashboard/dashboard_admin.dart';
 import 'package:ert/pages/dashboard/dashboard_user.dart';
+import 'package:ert/pages/jumantik/jumantik_page.dart';
+import 'package:ert/pages/jumantik/riwayat_jumantik_page.dart';
+import 'package:ert/pages/keluarga/detail_keluarga_page.dart';
+import 'package:ert/pages/keluarga/list_keluarga_page.dart';
 import 'package:ert/pages/pengumuman/riwayat_pengumuman_page.dart';
 import 'package:ert/pages/warga/warga_page.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +28,11 @@ class MyApp extends StatelessWidget {
         '/dashboard_admin': (context) => const DashboardAdminPage(),
         '/dashboard' : (context) => const DashboardUserPage(),
         '/manage_warga' : (context) => const WargaPage(),
-        '/riwayat_pengumuman' : (context) => const RiwayatPengumumanPage()
+        '/riwayat_pengumuman' : (context) => const RiwayatPengumumanPage(),
+        '/jumantik' : (context) =>const JumantikPage(),
+        '/riwayat_jumantik' : (context) => const RiwayatJumantikPage(),
+        '/manage_keluarga': (context) => const ListKeluargaPage()
+
       },
     );
   }
