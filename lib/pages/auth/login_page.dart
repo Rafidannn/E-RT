@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // IMPORT INI
 import '../../core/api/api_service.dart';
 import '../../core/constants/api_url.dart';
-import '../../models/user_model.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -22,15 +22,35 @@ class _LoginPageState extends State<LoginPage> {
       );
       return;
     }
+
     setState(() => _isLoading = true);
+
     try {
       final response = await ApiService.post(ApiUrl.login, {
         'nik': _nikController.text,
         'password': _passwordController.text,
       });
+
       if (response['status'] == true || response['status'] == 'success') {
+        // SIMPAN SESSION USER
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+
+        // Ambil data user dari response API lu (sesuaikan key 'nama' & 'role')
+        String nama = response['data']['nama'] ?? 'User';
+        String role = response['data']['role'] ?? 'warga';
+
+        await prefs.setString('nama_user', nama);
+        await prefs.setString('role', role);
+
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/dashboard');
+
+        // LOGIKA PINDAH DASHBOARD BERDASARKAN ROLE
+        if (role.toLowerCase() == 'admin') {
+          Navigator.pushReplacementNamed(context, '/dashboard_admin');
+        } else {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -54,7 +74,6 @@ class _LoginPageState extends State<LoginPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // BAGIAN LOGO
             Container(
               height: screenHeight * 0.35,
               width: double.infinity,
@@ -67,23 +86,16 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
-
-            // BAGIAN FORM STACK
             Stack(
               children: [
-                // LAYER 1: IJO MUDA
                 Container(
                   width: double.infinity,
                   height: 100,
                   decoration: const BoxDecoration(
                     color: Color(0xFF618F3C),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(80),
-                    ),
+                    borderRadius: BorderRadius.only(topLeft: Radius.circular(80)),
                   ),
                 ),
-
-                // LAYER 2: IJO TUA
                 Container(
                   margin: const EdgeInsets.only(top: 15),
                   width: double.infinity,
@@ -91,56 +103,21 @@ class _LoginPageState extends State<LoginPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
                   decoration: const BoxDecoration(
                     color: Color(0xFF2D4B1E),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(80),
-                    ),
+                    borderRadius: BorderRadius.only(topLeft: Radius.circular(80)),
                     boxShadow: [
-                      BoxShadow(
-                        color: Colors.black45,
-                        blurRadius: 15,
-                        offset: Offset(0, -5),
-                      ),
+                      BoxShadow(color: Colors.black45, blurRadius: 15, offset: Offset(0, -5)),
                     ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Login',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'RobotoBlack',
-                        ),
-                      ),
-                      const Text(
-                        'Login to get your account',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                          fontFamily: 'RobotoMedium',
-                        ),
-                      ),
+                      const Text('Login', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold, fontFamily: 'RobotoBlack')),
+                      const Text('Login to get your account', style: TextStyle(color: Colors.white70, fontSize: 16, fontFamily: 'RobotoMedium')),
                       const SizedBox(height: 40),
-
-                      _buildInput(
-                        controller: _nikController,
-                        hint: 'Enter your NIK',
-                        icon: Icons.assignment_ind_outlined,
-                      ),
+                      _buildInput(controller: _nikController, hint: 'Enter your NIK', icon: Icons.assignment_ind_outlined),
                       const SizedBox(height: 20),
-
-                      _buildInput(
-                        controller: _passwordController,
-                        hint: 'Password',
-                        icon: Icons.lock_outline,
-                        isPassword: true,
-                      ),
-
+                      _buildInput(controller: _passwordController, hint: 'Password', icon: Icons.lock_outline, isPassword: true),
                       const SizedBox(height: 40),
-
-                      // TOMBOL LOGIN ORANGE
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -148,44 +125,30 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
-                            elevation: 5,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           ),
                           child: _isLoading
                               ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text(
-                              'Login',
-                              style: TextStyle(
-                                fontSize: 20,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'RobotoBlack',
-                              )
-                          ),
+                              : const Text('Login', style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'RobotoBlack')),
                         ),
                       ),
-
                       const SizedBox(height: 30),
-
-                      // FOOTER NAVIGASI
                       Row(
                         children: [
                           const Expanded(child: Divider(color: Colors.white38)),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10),
                             child: InkWell(
-                              onTap: () {
-                                Navigator.pushNamed(context, '/register');
-                              },
+                              onTap: () => Navigator.pushNamed(context, '/register'),
                               child: const Text(
-                                  "Sign Up", // Gue lengkapin biar nggak kepotong
+                                  "Sign Up",
                                   style: TextStyle(
-                                    color: Colors.orange, // Teks orange biar serasi sama tombol login
-                                    fontFamily: 'RobotoMedium', // Balikin ke Medium biar kebaca, Light kekecilan
+                                    color: Colors.orange,
+                                    fontFamily: 'RobotoMedium',
                                     fontWeight: FontWeight.bold,
                                     decoration: TextDecoration.underline,
-                                    decorationColor: Colors.orange, // INI BIAR UNDERLINE-NYA BIRU
-                                    decorationThickness: 2, // Biar garis birunya kelihatan tegas
+                                    decorationColor: Colors.orange,
+                                    decorationThickness: 2,
                                   )
                               ),
                             ),
@@ -216,11 +179,7 @@ class _LoginPageState extends State<LoginPage> {
         prefixIcon: Icon(icon, color: Colors.grey),
         filled: true,
         fillColor: const Color(0xFFF3F3F3),
-        contentPadding: const EdgeInsets.symmetric(vertical: 15),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
       ),
     );
   }

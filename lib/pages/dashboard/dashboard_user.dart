@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../../core/api/api_service.dart';
 import '../../core/constants/api_url.dart';
 
-class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+class DashboardUserPage extends StatefulWidget {
+  const DashboardUserPage({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  State<DashboardUserPage> createState() => _DashboardUserPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardUserPageState extends State<DashboardUserPage> {
   List<dynamic> _listPengumuman = [];
   bool _isLoading = true;
 
