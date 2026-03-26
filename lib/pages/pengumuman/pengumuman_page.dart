@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/api/api_service.dart';
 import '../../core/constants/api_url.dart';
 import 'package:intl/intl.dart';
@@ -14,19 +18,25 @@ class _PengumumanPageState extends State<PengumumanPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _judulController = TextEditingController();
   final TextEditingController _isiController = TextEditingController();
+  final TextEditingController _lokasiController = TextEditingController();
 
-  // Variabel untuk menyimpan tanggal yang dipilih
   DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.now();
   bool _isLoading = false;
+
+  String? _selectedKategori;
+  
+  XFile? _fotoPengumuman;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void dispose() {
     _judulController.dispose();
     _isiController.dispose();
+    _lokasiController.dispose();
     super.dispose();
   }
 
-  // Fungsi untuk memunculkan Kalender (Date Picker)
   Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -37,7 +47,7 @@ class _PengumumanPageState extends State<PengumumanPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF2D4B1E), // Warna hijau tua tema Dashboard
+              primary: Color(0xFF2D4B1E),
               onPrimary: Colors.white,
               onSurface: Color(0xFF2D4B1E),
             ),
@@ -53,18 +63,61 @@ class _PengumumanPageState extends State<PengumumanPage> {
     }
   }
 
+  Future<void> _pickTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+             colorScheme: const ColorScheme.light(
+               primary: Color(0xFF2D4B1E),
+               onPrimary: Colors.white,
+               onSurface: Color(0xFF2D4B1E),
+             ),
+          ),
+          child: child!,
+        );
+      }
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+         _selectedTime = picked;
+      });
+    }
+  }
+
   Future<void> _postPengumuman() async {
     setState(() => _isLoading = true);
+    
+    String? fotoBase64;
     try {
+      if (_fotoPengumuman != null) {
+         final bytes = await _fotoPengumuman!.readAsBytes();
+         fotoBase64 = base64Encode(bytes);
+      }
+    } catch(e) {
+      debugPrint("Gagal encode foto: $e");
+    }
+
+    try {
+      // Waktu diformat jadi HH:mm WIB
+      final String formattedTime = "${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')} WIB";
+
       final Map<String, dynamic> formData = {
         'judul': _judulController.text,
         'isi': _isiController.text,
         'tanggal': DateFormat('yyyy-MM-dd').format(_selectedDate),
-        'user_id': '1', // Sesuai dengan $data['user_id'] di create.php
+        'waktu': formattedTime,
+        'kategori': _selectedKategori ?? 'INFO',
+        'lokasi': _lokasiController.text.isNotEmpty ? _lokasiController.text : 'Balai Warga',
+        'user_id': '1', 
       };
 
-      // PERBAIKAN: Memanggil ApiUrl.postPengumuman (create.php)
-      // bukan ApiUrl.pengumuman (get.php)
+      if (fotoBase64 != null) {
+        formData['foto_base64'] = fotoBase64;
+      }
+
       final response = await ApiService.post(ApiUrl.postPengumuman, formData);
 
       if (response['status'] == true) {
@@ -80,7 +133,7 @@ class _PengumumanPageState extends State<PengumumanPage> {
       debugPrint("Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Terjadi kesalahan koneksi")),
+          SnackBar(content: Text(e.toString())),
         );
       }
     } finally {
@@ -102,7 +155,6 @@ class _PengumumanPageState extends State<PengumumanPage> {
       ),
       body: Stack(
         children: [
-          // Dekorasi Header Hijau Melengkung
           Container(
             height: 100,
             decoration: const BoxDecoration(
@@ -119,7 +171,6 @@ class _PengumumanPageState extends State<PengumumanPage> {
               child: Column(
                 children: [
                   const SizedBox(height: 10),
-                  // Form Card
                   Container(
                     padding: const EdgeInsets.all(25),
                     decoration: BoxDecoration(
@@ -127,7 +178,7 @@ class _PengumumanPageState extends State<PengumumanPage> {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -148,25 +199,123 @@ class _PengumumanPageState extends State<PengumumanPage> {
 
                           const SizedBox(height: 20),
 
-                          _buildLabel("Pilih Tanggal", Icons.calendar_month_rounded),
+                          _buildLabel("Kategori Pengumuman", Icons.category_outlined),
                           const SizedBox(height: 10),
-                          InkWell(
-                            onTap: _pickDate,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F4F8),
-                                borderRadius: BorderRadius.circular(15),
+                          DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: const Color(0xFFF1F4F8),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                            ),
+                            hint: const Text("Pilih Kategori", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                            value: _selectedKategori,
+                            icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF8BAE51)),
+                            items: ["TERBARU", "KESEHATAN", "LINGKUNGAN", "KEAMANAN", "INFO"]
+                                .map((w) => DropdownMenuItem(value: w, child: Text(w, style: const TextStyle(fontSize: 14))))
+                                .toList(),
+                            onChanged: (val) => setState(() => _selectedKategori = val),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                     _buildLabel("Tanggal", Icons.calendar_month_rounded),
+                                     const SizedBox(height: 10),
+                                     InkWell(
+                                       onTap: _pickDate,
+                                       child: Container(
+                                         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                                         decoration: BoxDecoration(color: const Color(0xFFF1F4F8), borderRadius: BorderRadius.circular(15)),
+                                         child: Row(
+                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                           children: [
+                                             Text(DateFormat('dd MMM yyyy').format(_selectedDate), style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                                             const Icon(Icons.edit_calendar_rounded, color: Color(0xFF8BAE51), size: 18),
+                                           ],
+                                         ),
+                                       ),
+                                     ),
+                                  ],
+                                ),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    DateFormat('dd MMMM yyyy').format(_selectedDate),
-                                    style: const TextStyle(fontSize: 15, color: Colors.black87),
-                                  ),
-                                  const Icon(Icons.edit_calendar_rounded, color: Color(0xFF8BAE51)),
-                                ],
+                              const SizedBox(width: 15),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                     _buildLabel("Waktu", Icons.access_time_rounded),
+                                     const SizedBox(height: 10),
+                                     InkWell(
+                                       onTap: _pickTime,
+                                       child: Container(
+                                         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                                         decoration: BoxDecoration(color: const Color(0xFFF1F4F8), borderRadius: BorderRadius.circular(15)),
+                                         child: Row(
+                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                           children: [
+                                             Expanded(child: Text("${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')} WIB", style: const TextStyle(fontSize: 13, color: Colors.black87), overflow: TextOverflow.ellipsis)),
+                                             const Icon(Icons.schedule, color: Color(0xFF8BAE51), size: 18),
+                                           ],
+                                         ),
+                                       ),
+                                     ),
+                                  ],
+                                )
+                              )
+                            ],
+                          ),
+
+                          const SizedBox(height: 20),
+                          
+                          _buildLabel("Lokasi Kegiatan", Icons.location_on_rounded),
+                          const SizedBox(height: 10),
+                          _buildTextField(
+                            controller: _lokasiController,
+                            hint: "Contoh: Balai Warga RT 05",
+                            maxLines: 1,
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          _buildLabel("Foto Banner (Opsional)", Icons.image_rounded),
+                          const SizedBox(height: 10),
+                          GestureDetector(
+                            onTap: () async {
+                              final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 30, maxWidth: 600);
+                              if (picked != null) setState(() => _fotoPengumuman = picked);
+                            },
+                            child: CustomPaint(
+                              painter: _DashedRectPainter(color: const Color(0xFF8BAE51), strokeWidth: 1.5, gap: 5.0),
+                              child: Container(
+                                width: double.infinity,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F4F8),
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: _fotoPengumuman != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(15),
+                                        child: Image.file(File(_fotoPengumuman!.path), fit: BoxFit.cover, width: double.infinity),
+                                      )
+                                    : Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(10),
+                                            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 5)]),
+                                            child: const Icon(Icons.add_photo_alternate_outlined, color: Color(0xFF8BAE51), size: 30),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          const Text("Upload Foto dari Galeri", style: TextStyle(color: Colors.black54, fontSize: 13, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
                               ),
                             ),
                           ),
@@ -206,7 +355,7 @@ class _PengumumanPageState extends State<PengumumanPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.send_rounded),
-                                  const SizedBox(width: 10),
+                                  SizedBox(width: 10),
                                   Text("PUBLIKASIKAN",
                                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                 ],
@@ -231,7 +380,7 @@ class _PengumumanPageState extends State<PengumumanPage> {
       children: [
         Icon(icon, size: 20, color: const Color(0xFF2D4B1E)),
         const SizedBox(width: 8),
-        Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2D4B1E))),
+        Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2D4B1E))),
       ],
     );
   }
@@ -240,8 +389,10 @@ class _PengumumanPageState extends State<PengumumanPage> {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
+      style: const TextStyle(fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
+        hintStyle: const TextStyle(fontSize: 13),
         filled: true,
         fillColor: const Color(0xFFF1F4F8),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -284,4 +435,43 @@ class _PengumumanPageState extends State<PengumumanPage> {
       ),
     );
   }
+}
+
+// Custom Painter for dashed border box
+class _DashedRectPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  
+  _DashedRectPainter({required this.color, required this.strokeWidth, required this.gap});
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    var paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+      
+    var path = Path();
+    path.addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, size.width, size.height), const Radius.circular(15)));
+    
+    Path dashPath = Path();
+    double distance = 0.0;
+    
+    for (ui.PathMetric pathMetric in path.computeMetrics()) {
+      while (distance < pathMetric.length) {
+        dashPath.addPath(
+          pathMetric.extractPath(distance, distance + gap),
+          Offset.zero,
+        );
+        distance += gap * 2;
+      }
+      distance = 0.0;
+    }
+    
+    canvas.drawPath(dashPath, paint);
+  }
+  
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

@@ -35,12 +35,13 @@ class _LoginPageState extends State<LoginPage> {
         // SIMPAN SESSION USER
         SharedPreferences prefs = await SharedPreferences.getInstance();
 
-        // Ambil data user dari response API lu (sesuaikan key 'nama' & 'role')
         String nama = response['data']['nama'] ?? 'User';
         String role = response['data']['role'] ?? 'warga';
+        String nik = response['data']['nik'] ?? _nikController.text;
 
         await prefs.setString('nama_user', nama);
         await prefs.setString('role', role);
+        await prefs.setString('nik_user', nik);
 
         if (!mounted) return;
 

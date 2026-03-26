@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:pie_chart/pie_chart.dart';
 import '../../core/api/api_service.dart';
 import '../../core/constants/api_url.dart';
+import '../profil/profil_admin_page.dart';
 
 class DashboardAdminPage extends StatefulWidget {
   const DashboardAdminPage({super.key});
@@ -292,7 +293,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
         children: [
           _buildMenuIcon(Icons.person_outline, "Data Warga", '/manage_warga'),
           _buildMenuIcon(Icons.people_outline, "Data Keluarga", '/manage_keluarga'),
-          _buildMenuIcon(Icons.account_balance_wallet_outlined, "Input Iuran", '/manage_iuran'),
+          _buildMenuIcon(Icons.account_balance_wallet_outlined, "Riwayat Iuran", '/manage_iuran'),
           _buildMenuIcon(Icons.verified_user_outlined, "Verifikasi", '/verifikasi'),
           _buildMenuIcon(Icons.home_work_outlined, "Posyandu", '/posyandu'),
           _buildMenuIcon(Icons.assignment_outlined, "Jumantik", '/riwayat_jumantik'),
@@ -340,7 +341,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(15)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(15)),
       child: Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 15), Expanded(child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)))]),
     );
   }
@@ -356,7 +357,15 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
           const Icon(Icons.home, color: Colors.white, size: 28),
           IconButton(icon: const Icon(Icons.people_outline, color: Colors.white70), onPressed: () => Navigator.pushNamed(context, '/manage_warga')),
           IconButton(icon: const Icon(Icons.account_balance_wallet_outlined, color: Colors.white70), onPressed: () => Navigator.pushNamed(context, '/manage_iuran')),
-          const Icon(Icons.person_outline, color: Colors.white70),
+          IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.white70),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfilAdminPage()),
+              );
+            },
+          ),
         ],
       ),
     );

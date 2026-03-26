@@ -3,14 +3,14 @@ import '../../core/api/api_service.dart';
 import '../../core/constants/api_url.dart';
 import 'detail_pengumuman_page.dart';
 
-class RiwayatPengumumanPage extends StatefulWidget {
-  const RiwayatPengumumanPage({super.key});
+class DaftarPengumumanPage extends StatefulWidget {
+  const DaftarPengumumanPage({super.key});
 
   @override
-  State<RiwayatPengumumanPage> createState() => _RiwayatPengumumanPageState();
+  State<DaftarPengumumanPage> createState() => _DaftarPengumumanPageState();
 }
 
-class _RiwayatPengumumanPageState extends State<RiwayatPengumumanPage> {
+class _DaftarPengumumanPageState extends State<DaftarPengumumanPage> {
   List<dynamic> _listPengumuman = [];
   bool _isLoading = true;
 
@@ -109,7 +109,7 @@ class _RiwayatPengumumanPageState extends State<RiwayatPengumumanPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7FCF6), // Light green-ish white background
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF14301C)))
           : SingleChildScrollView(
@@ -159,21 +159,10 @@ class _RiwayatPengumumanPageState extends State<RiwayatPengumumanPage> {
               ),
             ),
       bottomNavigationBar: _buildBottomNavbar(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.pushNamed(context, '/pengumuman_page');
-          if (result == true) {
-            _fetchPengumuman();
-          }
-        },
-        backgroundColor: const Color(0xFF14301C),
-        elevation: 4,
-        child: const Icon(Icons.add, size: 30, color: Colors.white),
-      ),
     );
   }
 
-  AppBar _buildAppBar(BuildContext context) {
+  AppBar _buildAppBar() {
     return AppBar(
       backgroundColor: const Color(0xFFF7FCF6),
       elevation: 0,

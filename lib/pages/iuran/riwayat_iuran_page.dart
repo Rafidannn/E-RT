@@ -3,7 +3,7 @@ import '../../core/api/api_service.dart';
 import '../../core/constants/api_url.dart';
 
 class RiwayatIuranUserPage extends StatefulWidget {
-  final String idKeluarga; // Diambil dari data login/session
+  final String idKeluarga;
   const RiwayatIuranUserPage({super.key, required this.idKeluarga});
 
   @override
@@ -12,9 +12,7 @@ class RiwayatIuranUserPage extends StatefulWidget {
 
 class _RiwayatIuranUserPageState extends State<RiwayatIuranUserPage> {
   List<dynamic> _allData = [];
-  List<dynamic> _filteredData = [];
   bool _isLoading = true;
-  String _currentFilter = "Semua";
 
   @override
   void initState() {
@@ -26,13 +24,12 @@ class _RiwayatIuranUserPageState extends State<RiwayatIuranUserPage> {
     setState(() => _isLoading = true);
     try {
       final res = await ApiService.post(ApiUrl.getIuranByUser, {
-        'id_keluarga': widget.idKeluarga,
+        'id_keluarga': 'all',
       });
 
       if (res['status'] == 'success') {
         setState(() {
-          _allData = res['data'];
-          _applyFilter(_currentFilter);
+          _allData = res['data'] ?? [];
         });
       }
     } catch (e) {
@@ -42,185 +39,261 @@ class _RiwayatIuranUserPageState extends State<RiwayatIuranUserPage> {
     }
   }
 
-  void _applyFilter(String filter) {
-    setState(() {
-      _currentFilter = filter;
-      if (filter == "Semua") {
-        _filteredData = _allData;
-      } else {
-        _filteredData = _allData.where((item) =>
-        item['status'].toString().toLowerCase() == filter.toLowerCase()
-        ).toList();
-      }
-    });
+  void _showDetail(dynamic item) {
+    showDialog(
+        context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.5),
+        builder: (context) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAF7F2),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.receipt_long_outlined, size: 40, color: Color(0xFF334A28)),
+                  const SizedBox(height: 10),
+                  Text(item['nama_kepala'] ?? 'Warga', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  const SizedBox(height: 5),
+                  Text("No. KK  ${item['no_kk'] ?? '-'}", style: const TextStyle(color: Colors.black54, fontSize: 14)),
+                  const SizedBox(height: 10),
+
+                  // Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: (item['status']?.toString().toLowerCase() == 'lunas') ? const Color(0xFF334A28) : const Color(0xFFE69138),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      (item['status']?.toString().toLowerCase() == 'lunas') ? 'Lunas' : 'Belum Lunas',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+                  const Divider(color: Colors.grey, thickness: 1),
+                  const SizedBox(height: 15),
+
+                  _buildDetailRow("Jenis Iuran", item['jenis_iuran'] ?? '-'),
+                  _buildDetailRow("Periode", "${item['bulan'] ?? '-'} ${item['tahun'] ?? '-'}"),
+                  _buildDetailRow("Nominal", "Rp ${(item['nominal'] ?? '0').toString()}"),
+                  _buildDetailRow("Tanggal Bayar", item['tanggal_bayar'] ?? '-'),
+                  _buildDetailRow("Metode", item['metode_pembayaran'] ?? '-'),
+
+                  if (item['catatan'] != null && item['catatan'].toString().isNotEmpty)
+                    _buildDetailRow("Catatan", item['catatan']),
+
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF8BA54D),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Tutup", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        }
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 2, child: Text(label, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+          const Text(" : ", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          Expanded(flex: 3, child: Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87), textAlign: TextAlign.right)),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text("Riwayat Iuran Saya",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF2D4B1E),
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Column(
+      backgroundColor: const Color(0xFFFFFFFF),
+      body: Stack(
         children: [
-          // Header Dekoratif
-          _buildHeaderSection(),
-
-          // Filter Chips
-          _buildFilterSection(),
-
-          // List Data
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF2D4B1E)))
-                : RefreshIndicator(
-              onRefresh: _fetchData,
-              child: _filteredData.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: _filteredData.length,
-                itemBuilder: (context, index) {
-                  return _buildIuranCard(_filteredData[index]);
-                },
+          // Background Dark Green shape
+          Positioned(
+            top: 0, left: 0, right: 0, bottom: 250,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF334A28),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(50)),
               ),
             ),
           ),
-        ],
-      ),
-      // Tombol melayang buat tambah/konfirmasi bayar
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.pushNamed(context, '/input_iuran_user');
-          if (result == true) _fetchData();
-        },
-        backgroundColor: const Color(0xFF8BAE51),
-        icon: const Icon(Icons.add_card, color: Colors.white),
-        label: const Text("Bayar Iuran", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
-
-  Widget _buildHeaderSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.only(bottom: 30),
-      decoration: const BoxDecoration(
-        color: Color(0xFF2D4B1E),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-      ),
-      child: const Column(
-        children: [
-          Icon(Icons.history_edu_rounded, color: Colors.white, size: 50),
-          SizedBox(height: 10),
-          Text("Cek status iuran bulanan Anda",
-              style: TextStyle(color: Colors.white70, fontSize: 13)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 15),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: ["Semua", "Lunas", "Belum"].map((filter) {
-          bool isSelected = _currentFilter == filter;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: ChoiceChip(
-              label: Text(filter),
-              selected: isSelected,
-              selectedColor: const Color(0xFF2D4B1E),
-              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
-              onSelected: (bool selected) {
-                if (selected) _applyFilter(filter);
-              },
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildIuranCard(dynamic item) {
-    bool isLunas = item['status'].toString().toLowerCase() == 'lunas';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: isLunas ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-            child: Icon(
-              isLunas ? Icons.check_circle_rounded : Icons.pending_actions_rounded,
-              color: isLunas ? Colors.green : Colors.orange,
+          // Logo ERT
+          Positioned(
+            top: 300,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Opacity(
+                opacity: 0.3,
+                child: Image.asset('assets/images/logo_ert.png', width: 250, fit: BoxFit.contain),
+              ),
             ),
           ),
-          const SizedBox(width: 15),
-          Expanded(
+
+          SafeArea(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item['jenis_iuran'] ?? "Iuran Warga",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text("${item['bulan']} ${item['tahun']}",
-                    style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                _buildHeader(context),
+                const SizedBox(height: 20),
+                _buildTabs(),
+                const SizedBox(height: 30),
+
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                      : _allData.isEmpty
+                      ? const Center(child: Text("Belum ada riwayat iuran", style: TextStyle(color: Colors.white)))
+                      : RefreshIndicator(
+                    onRefresh: _fetchData,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+                      itemCount: _allData.length,
+                      itemBuilder: (context, index) {
+                        final item = _allData[index];
+                        return GestureDetector(
+                          onTap: () => _showDetail(item),
+                          child: Container(
+                            height: 80,
+                            margin: const EdgeInsets.only(bottom: 15),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFAF7F2),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(item['nama_kepala'] ?? "Warga", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                    Text("${item['bulan']} ${item['tahun']}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                                  ],
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text("Rp ${item['nominal'] ?? '0'}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF334A28))),
+                                    Text(
+                                        (item['status']?.toString().toLowerCase() == 'lunas') ? 'Lunas' : 'Belum Lunas',
+                                        style: TextStyle(
+                                            color: (item['status']?.toString().toLowerCase() == 'lunas') ? Colors.green : Colors.orange,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold
+                                        )
+                                    ),
+                                  ],
+                                )
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text("Rp ${item['nominal']}",
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-              const SizedBox(height: 5),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isLunas ? Colors.green : Colors.orange,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  item['status'].toString().toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Icon(Icons.receipt_long_rounded, size: 80, color: Colors.grey[300]),
-          const SizedBox(height: 10),
-          const Text("Tidak ada data iuran ditemukan", style: TextStyle(color: Colors.grey)),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF8BA54D),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Text("Riwayat Iuran", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          ),
+          // Icon dihapus sesuai permintaan
         ],
       ),
+    );
+  }
+
+  Widget _buildTabs() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        GestureDetector(
+          onTap: () {
+            Navigator.pushReplacementNamed(context, '/verifikasi_pembayaran');
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE69138),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.chevron_left, color: Colors.white, size: 16),
+                SizedBox(width: 5),
+                Text("Verifikasi Iuran", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 15),
+          child: Icon(Icons.account_balance_wallet_outlined, color: Colors.white, size: 30),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE69138),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Row(
+            children: [
+              Text("Riwayat Iuran", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              SizedBox(width: 5),
+              Icon(Icons.chevron_right, color: Colors.white, size: 16),
+            ],
+          ),
+        )
+      ],
     );
   }
 }

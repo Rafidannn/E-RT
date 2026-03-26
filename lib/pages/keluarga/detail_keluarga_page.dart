@@ -22,7 +22,6 @@ class _DetailKeluargaPageState extends State<DetailKeluargaPage> {
 
   Future<void> _fetchDetail() async {
     try {
-      // Panggil detail pake parameter:
       final response = await ApiService.get("${ApiUrl.getDetailKeluarga}?id_keluarga=${widget.idKeluarga}");
       if (response['status'] == true) {
         setState(() => _data = response['data']);
@@ -40,148 +39,170 @@ class _DetailKeluargaPageState extends State<DetailKeluargaPage> {
     var listAnggota = _data?['anggota'] as List?;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: const Text("Detail Keluarga", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF2D4B1E),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF2D4B1E)))
-          : SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildHeader(info),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle("Informasi Tambahan"),
-                  _buildDetailGrid(info),
-                  const SizedBox(height: 25),
-                  _buildSectionTitle("Daftar Anggota Keluarga (${listAnggota?.length ?? 0})"),
-                  const SizedBox(height: 10),
-                  ...?listAnggota?.map((w) => _buildMemberItem(w)).toList(),
-                ],
+      backgroundColor: const Color(0xFFFFFFFF), // Putih sebagai layar dasar keseluruhan
+      body: Stack(
+        children: [
+          // Background Color CUMA SETENGAH
+          Positioned(
+            top: 0, left: 0, right: 0, bottom: 250,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF2D4B1E), // Dark Green top
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(50)),
               ),
             ),
-          ],
-        ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(context),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFFFFF), // Cream card
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Stack(
+                              children: [
+                                // Watermark ERT Logo di dalam Card
+                                Positioned.fill(
+                                  top: 150,
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: Opacity(
+                                      opacity: 0.25,
+                                      child: Image.asset('assets/images/logo_ert.png', width: 220, fit: BoxFit.contain),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(25),
+                                  child: Column(
+                                    children: [
+                                      const Text(
+                                        "Detail Keluarga",
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black54),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      const Divider(thickness: 1.5, color: Colors.grey),
+                                      const SizedBox(height: 20),
+
+                                      // Orange Avatar
+                                      Center(
+                                        child: CircleAvatar(
+                                          radius: 40,
+                                          backgroundColor: Colors.orange,
+                                          child: const Icon(Icons.person_outline, size: 45, color: Colors.white),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 15),
+
+                                      Text(
+                                        "No. KK : ${info?['no_kk'] ?? '-'}",
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      ),
+                                      const SizedBox(height: 30),
+
+                                      // Anggota Keluarga Box
+                                      _buildBoxInfo(
+                                        title: "Anggota Keluarga :",
+                                        content: listAnggota != null && listAnggota.isNotEmpty
+                                            ? listAnggota.map((w) => "• ${w['nama']} (${w['nik']})").join("\n")
+                                            : "-",
+                                        minLines: 5,
+                                      ),
+                                      const SizedBox(height: 15),
+
+                                      _buildBoxInfo(
+                                        title: "Sumber Air :",
+                                        content: info?['sumber_air'] ?? "-",
+                                      ),
+                                      const SizedBox(height: 15),
+
+                                      _buildBoxInfo(
+                                        title: "Pengelolaan Sampah :",
+                                        content: info?['pengelolaan_sampah'] ?? "-",
+                                      ),
+                                      const SizedBox(height: 15),
+
+                                      _buildBoxInfo(
+                                        title: "Kepemilikan Jamban & Toga :",
+                                        content: "Jamban: ${info?['memiliki_jamban'] == '1' ? 'Ada' : 'Tidak'}\n"
+                                                 "Toga: ${info?['memiliki_toga'] == '1' ? 'Ada' : 'Tidak'}",
+                                      ),
+
+                                      const SizedBox(height: 50),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader(dynamic info) {
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          Container(
+             padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
+             decoration: BoxDecoration(
+                color: const Color(0xFF8CAF5D),
+                borderRadius: BorderRadius.circular(20),
+             ),
+             child: const Text("Data Keluarga", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBoxInfo({required String title, required String content, int minLines = 1}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(25),
-      decoration: const BoxDecoration(
-        color: Color(0xFF2D4B1E),
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(35), bottomRight: Radius.circular(35)),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.85),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("KEPALA KELUARGA", style: TextStyle(color: Colors.white70, fontSize: 12)),
-          Text(info['nama_kepala'] ?? '-', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Text("No KK: ${info['no_kk']}", style: const TextStyle(color: Colors.white70)),
-          const Divider(color: Colors.white24, height: 30),
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: Colors.white70, size: 16),
-              const SizedBox(width: 8),
-              Expanded(child: Text(info['alamat_lengkap'] ?? '-', style: const TextStyle(color: Colors.white))),
-            ],
-          ),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+          minLines > 1 ? const SizedBox(height: 10) : const SizedBox(height: 3),
+          Text(content, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+          if (minLines > 1 && content.length < 50) SizedBox(height: minLines * 12.0),
         ],
       ),
-    );
-  }
-
-  Widget _buildDetailGrid(dynamic info) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        // Pake warna hijau muda transparan biar seger
-        color: const Color(0xFF8CAF5D).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF8CAF5D).withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _gridItem("Ekonomi", info['status_ekonomi'], Icons.payments_outlined),
-              _gridItem("Sumber Air", info['sumber_air'], Icons.water_drop_outlined),
-            ],
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Divider(color: Colors.black12),
-          ),
-          Row(
-            children: [
-              _gridItem("Jamban", info['memiliki_jamban'] == "1" ? "Ada" : "Tidak", Icons.wc_outlined),
-              _gridItem("Sampah", info['pengelolaan_sampah'], Icons.delete_outline),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _gridItem(String label, String? value, IconData icon) {
-    return Expanded(
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2D4B1E).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: const Color(0xFF2D4B1E), size: 20),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              Text(
-                  value ?? '-',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMemberItem(dynamic w) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.grey.shade200)),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: w['jenis_kelamin'] == 'L' ? Colors.blue.shade50 : Colors.pink.shade50,
-          child: Icon(w['jenis_kelamin'] == 'L' ? Icons.male : Icons.female, color: w['jenis_kelamin'] == 'L' ? Colors.blue : Colors.pink),
-        ),
-        title: Text(w['nama'], style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text("NIK: ${w['nik']}\n${w['pekerjaan']}"),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D4B1E))),
     );
   }
 }

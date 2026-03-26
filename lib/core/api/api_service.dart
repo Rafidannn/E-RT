@@ -41,9 +41,16 @@ class ApiService {
   }
 
   static dynamic _handleResponse(http.Response response) {
+    debugPrint("Status Code: ${response.statusCode}");
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return json.decode(response.body);
+      try {
+        return json.decode(response.body);
+      } catch (e) {
+        debugPrint("ERROR PARSING JSON: $e");
+        throw Exception('Format data dari server salah/rusak');
+      }
     } else {
+      debugPrint("SERVER ERROR BODY: ${response.body}");
       throw Exception('Error ${response.statusCode}: ${response.body}');
     }
   }

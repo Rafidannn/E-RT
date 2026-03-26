@@ -96,28 +96,39 @@ class _ListKeluargaPageState extends State<ListKeluargaPage> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // 1. SEARCH BAR (STYLE WARGA)
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-            decoration: const BoxDecoration(
-              color: Color(0xFF2D4B1E),
-              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
-            ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _filterKeluarga,
-              decoration: InputDecoration(
-                hintText: "Cari nama KK atau No. KK...",
-                suffixIcon: const Icon(Icons.search, color: Colors.black54),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
-              ),
-            ),
+          Positioned(
+            top: 250, left: 0, right: 0,
+            child: Center(
+              child: Opacity(
+                opacity: 0.25,
+                child: Image.asset('assets/images/logo_ert.png', width: 250, fit: BoxFit.contain),
+              )
+            )
           ),
+          Column(
+            children: [
+              // 1. SEARCH BAR (STYLE WARGA)
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2D4B1E),
+                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _filterKeluarga,
+                  decoration: InputDecoration(
+                    hintText: "Cari nama KK atau No. KK...",
+                    suffixIcon: const Icon(Icons.search, color: Colors.black54),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                  ),
+                ),
+              ),
 
           // 2. TOTAL INFO
           Padding(
@@ -148,24 +159,26 @@ class _ListKeluargaPageState extends State<ListKeluargaPage> {
           ),
         ],
       ),
-    );
-  }
+    ],
+  ),
+);
+}
 
-  Widget _buildKeluargaCard(dynamic item) {
-    String ekonomi = (item['status_ekonomi'] ?? 'pra-sejahtera').toLowerCase();
+Widget _buildKeluargaCard(dynamic item) {
+    String rawEkonomi = item['status_ekonomi']?.toString().toLowerCase().trim() ?? '';
+    String ekonomi = ['pra-sejahtera', 'madya', 'mandiri'].contains(rawEkonomi) ? rawEkonomi : 'pra-sejahtera';
     Color badgeColor = ekonomi == 'mandiri' ? Colors.green : (ekonomi == 'madya' ? Colors.blue : Colors.orange);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withValues(alpha: 0.9), // Sedikit transparan agar logo nampak
           borderRadius: BorderRadius.circular(15),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))]
       ),
-      child: InkWell( // <--- TAMBAHKAN INI: Biar satu kartu bisa diklik
+      child: InkWell(
         borderRadius: BorderRadius.circular(15),
         onTap: () {
-          // Navigasi lewat klik kartu langsung
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -178,35 +191,48 @@ class _ListKeluargaPageState extends State<ListKeluargaPage> {
           child: Column(
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CircleAvatar(
                     radius: 25,
-                    backgroundColor: badgeColor.withOpacity(0.2),
-                    child: Text(item['nama_warga'][0].toUpperCase(),
-                        style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold)),
+                    backgroundColor: const Color(0xFF2D4B1E),
+                    child: const Icon(Icons.person_outline, color: Colors.white, size: 28),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item['nama_warga'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        Text("KK : ${item['no_kk']}", style: const TextStyle(color: Colors.black87, fontSize: 12)),
+                        Text("No. KK : ${item['no_kk'] ?? '-'}", style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 3),
+                        Text("Nama Kpl. Keluarga : ${item['nama_warga'] ?? '-'}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        const SizedBox(height: 3),
+                        Text(
+                          "Blok Rumah : ${(item['alamat_lengkap'] == null || item['alamat_lengkap'].toString().trim().isEmpty) ? '-' : item['alamat_lengkap']}", 
+                          style: const TextStyle(color: Colors.black87, fontSize: 12)
+                        ),
                         const SizedBox(height: 5),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: badgeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(5)),
-                          child: Text(ekonomi.toUpperCase(),
-                              style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                        Row(
+                          children: [
+                            const Text("Badge Status : ", style: TextStyle(color: Colors.black87, fontSize: 12)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(5)),
+                              child: Text(ekonomi.toUpperCase(),
+                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  // TOMBOL EDIT & DELETE (Tetep bisa diklik terpisah)
-                  Row(
+                  // TOMBOL EDIT & DELETE
+                  Column(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_note, color: Color(0xFF2D4B1E)),
+                        icon: const Icon(Icons.edit_note, color: Color(0xFF2D4B1E), size: 20),
+                        constraints: const BoxConstraints(),
+                        padding: EdgeInsets.zero,
                         onPressed: () async {
                           final res = await Navigator.push(
                             context,
@@ -215,27 +241,27 @@ class _ListKeluargaPageState extends State<ListKeluargaPage> {
                           if (res == true) _getKeluarga();
                         },
                       ),
+                      const SizedBox(height: 10),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        constraints: const BoxConstraints(),
+                        padding: EdgeInsets.zero,
                         onPressed: () => _deleteKeluarga(item['id_keluarga'].toString()),
                       ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              // AREA KLIK DETAIL (Dibuat lebih luas pake Padding)
+              const SizedBox(height: 5),
+              // AREA KLIK DETAIL
               Align(
                 alignment: Alignment.bottomRight,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  child: const Text(
-                    "Detail Keluarga >",
-                    style: TextStyle(
-                      color: Colors.orange,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+                child: const Text(
+                  "Detail Keluarga",
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),

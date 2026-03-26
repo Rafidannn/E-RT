@@ -19,14 +19,13 @@ class _RiwayatPosyanduPageState extends State<RiwayatPosyanduPage> {
     _fetchRiwayat();
   }
 
-  // Ambil data dari get_history.php
   Future<void> _fetchRiwayat() async {
     setState(() => _isLoading = true);
     try {
-      final response = await ApiService.get(ApiUrl.getPosyandu);
-      if (response['status'] == true) {
+      final response = await ApiService.get(ApiUrl.getHistoryPosyandu);
+      if (response['status'] == true || response['status'] == 'success') {
         setState(() {
-          _listPosyandu = response['data'];
+          _listPosyandu = (response['data'] ?? []);
         });
       }
     } catch (e) {
@@ -39,154 +38,136 @@ class _RiwayatPosyanduPageState extends State<RiwayatPosyanduPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: const Text('Riwayat Posyandu',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF2D4B1E),
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      backgroundColor: const Color(0xFFFAF7F2),
       body: Stack(
         children: [
-          // Background Hijau di atas (Header Dekoratif)
           Container(
-            height: 60,
+            height: 250,
             decoration: const BoxDecoration(
-              color: Color(0xFF2D4B1E),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
+              color: Color(0xFF334A28), // Seragam dengan halaman depan Posyandu
             ),
           ),
-
-          _isLoading
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF2D4B1E)))
-              : _listPosyandu.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-            onRefresh: _fetchRiwayat,
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-              itemCount: _listPosyandu.length,
-              itemBuilder: (context, index) {
-                return _buildCardPosyandu(_listPosyandu[index]);
-              },
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(context),
+                const SizedBox(height: 15),
+                Expanded(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFAF7F2),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+                    ),
+                    child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFF334A28)))
+                      : _listPosyandu.isEmpty
+                        ? _buildEmptyState()
+                        : RefreshIndicator(
+                            onRefresh: _fetchRiwayat,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                              itemCount: _listPosyandu.length,
+                              itemBuilder: (context, index) {
+                                final item = _listPosyandu[index];
+                                bool isBalita = item['kategori'] == 'balita';
+                                return _buildRiwayatItem(
+                                  isBalita ? "B" : "L", 
+                                  item['nama_warga'] ?? '-', 
+                                  isBalita 
+                                    ? "Balita • ${item['berat_badan']} kg • ${item['tinggi_badan']} cm"
+                                    : "Lansia • ${item['berat_badan']} kg • ${item['tinggi_badan']} cm • Catatan: ${item['hasil']}",
+                                  item['tanggal'] ?? ''
+                                );
+                              },
+                            ),
+                          ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
-      ),
-
-      // Tombol Tambah Data
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          // Pindah ke halaman input, jika balik membawa data true, refresh list
-          final result = await Navigator.pushNamed(context, '/pengumuman');
-          if (result == true) {
-            _fetchRiwayat();
-          }
-        },
-        backgroundColor: const Color(0xFF8BAE51),
-        elevation: 4,
-        child: const Icon(Icons.add, size: 30, color: Colors.white),
       ),
     );
   }
 
-  Widget _buildCardPosyandu(dynamic item) {
-    bool isBalita = item['kategori'] == 'balita';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: IntrinsicHeight(
+  Widget _buildHeader(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Garis warna samping berdasarkan kategori
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                constraints: const BoxConstraints(),
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.pop(context),
+              ),
               Container(
-                width: 8,
-                color: isBalita ? Colors.blue : Colors.orange,
+                padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
+                decoration: BoxDecoration(color: const Color(0xFF759A3D), borderRadius: BorderRadius.circular(15)),
+                child: const Text("Riwayat Lengkap", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            item['nama_warga'] ?? 'Warga',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          Text(
-                            item['tanggal'] ?? '',
-                            style: const TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _buildStatItem(Icons.monitor_weight_outlined, "Berat", "${item['berat_badan']} kg"),
-                          _buildStatItem(Icons.height_rounded, "Tinggi", "${item['tinggi_badan']} cm"),
-                        ],
-                      ),
-                      const Divider(height: 24),
-                      const Text(
-                        "Hasil Pemeriksaan:",
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item['hasil'] ?? '-',
-                        style: const TextStyle(fontSize: 13, color: Colors.black87),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              const Icon(Icons.history, color: Colors.white, size: 26),
             ],
           ),
         ),
-      ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Divider(color: Colors.white54, thickness: 1),
+        ),
+      ],
     );
   }
 
-  Widget _buildStatItem(IconData icon, String label, String value) {
-    return Expanded(
+  Widget _buildRiwayatItem(String letter, String nama, String detail, String waktu) {
+    bool isB = letter == "B";
+    return Container(
+      padding: const EdgeInsets.all(15),
+      margin: const EdgeInsets.only(bottom: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF8BAE51)),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-              Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-            ],
-          ),
+           Container(
+             width: 50, height: 50,
+             decoration: BoxDecoration(
+               color: isB ? const Color(0xFFFDE4F2) : const Color(0xFFE6F2FF),
+               borderRadius: BorderRadius.circular(12),
+             ),
+             child: Center(
+               child: Text(
+                 letter,
+                 style: TextStyle(
+                   color: isB ? Colors.pinkAccent : Colors.blueAccent,
+                   fontSize: 20, fontWeight: FontWeight.w900
+                 ),
+               ),
+             ),
+           ),
+           const SizedBox(width: 15),
+           Expanded(
+             child: Column(
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 Text(nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+                 const SizedBox(height: 4),
+                 Text(detail, style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.normal), maxLines: 2, overflow: TextOverflow.ellipsis),
+               ],
+             ),
+           ),
+           const SizedBox(width: 10),
+           Text(
+             waktu,
+             style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w600),
+           ),
         ],
-      ),
+      )
     );
   }
 
@@ -195,12 +176,9 @@ class _RiwayatPosyanduPageState extends State<RiwayatPosyanduPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.medical_information_outlined, size: 80, color: Colors.grey[300]),
+          Icon(Icons.monitor_weight_outlined, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          const Text(
-            "Belum ada riwayat pemeriksaan",
-            style: TextStyle(color: Colors.grey, fontSize: 16),
-          ),
+          const Text("Belum ada riwayat pemeriksaan", style: TextStyle(color: Colors.grey, fontSize: 14)),
         ],
       ),
     );
