@@ -334,7 +334,7 @@ class _UserDetailPageState extends State<UserDetailPage> {
                 decoration: BoxDecoration(color: const Color(0xFF7CB342), borderRadius: BorderRadius.circular(20)),
                 child: const Text("Detail Iuran", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
-              IconButton(icon: const Icon(Icons.person_add_alt_1_outlined, color: Colors.white, size: 26), onPressed: (){}),
+              const SizedBox(width: 40),
             ],
           ),
           const SizedBox(height: 15),

@@ -5,6 +5,10 @@ import '../../core/constants/api_url.dart';
 import '../iuran/user_riwayat_iuran_page.dart';
 import '../laporan/user_laporan_page.dart';
 import '../surat/user_surat_page.dart';
+import '../keluarga/user_keluarga_page.dart';
+import '../agenda/user_agenda_page.dart';
+import '../panduan/user_panduan_page.dart';
+import '../profil/user_profil_page.dart';
 
 class DashboardUserPage extends StatefulWidget {
   const DashboardUserPage({super.key});
@@ -171,7 +175,7 @@ class _DashboardUserPageState extends State<DashboardUserPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.settings_outlined, color: Colors.white, size: 26),
+              const Icon(Icons.notifications_none, color: Colors.white, size: 26),
               Flexible(
                 child: Text(
                   "Selamat Datang, $_namaUser",
@@ -331,9 +335,15 @@ class _DashboardUserPageState extends State<DashboardUserPage> {
               _buildLayananIcon(Icons.description_outlined, "Surat Pengantar", () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const UserSuratPage()));
               }),
-              _buildLayananIcon(Icons.calendar_month_outlined, "Agenda RT", () {}),
-              _buildLayananIcon(Icons.menu_book_outlined, "Panduan", () {}),
-              _buildLayananIcon(Icons.family_restroom_rounded, "Info Keluarga", () {}),
+              _buildLayananIcon(Icons.calendar_month_outlined, "Agenda RT", () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const UserAgendaPage()));
+              }),
+              _buildLayananIcon(Icons.menu_book_outlined, "Panduan", () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const UserPanduanPage()));
+              }),
+              _buildLayananIcon(Icons.family_restroom_rounded, "Info Keluarga", () {
+                 Navigator.push(context, MaterialPageRoute(builder: (context) => const UserKeluargaPage()));
+              }),
             ],
           ),
         ],
@@ -475,12 +485,13 @@ class _DashboardUserPageState extends State<DashboardUserPage> {
                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                children: [
                  const SizedBox(width: 80), // Space for Home Left Group
-                 IconButton(icon: const Icon(Icons.groups_outlined, color: Colors.white, size: 30), onPressed: () {}),
                  IconButton(
-                     icon: const Icon(Icons.person_outline, color: Colors.white, size: 30), 
-                     onPressed: () {
-                         Navigator.pushNamed(context, '/profil'); // Misal route ke profil user
-                     }
+                   icon: const Icon(Icons.groups_outlined, color: Colors.white, size: 30),
+                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserKeluargaPage())),
+                 ),
+                 IconButton(
+                   icon: const Icon(Icons.person_outline, color: Colors.white, size: 30),
+                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfilPage())),
                  ),
                ],
              ),

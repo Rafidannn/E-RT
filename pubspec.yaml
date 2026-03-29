@@ -23,6 +23,8 @@ dependencies:
   add_2_calendar: ^2.2.0
   geolocator: ^14.0.2
   geocoding: ^4.0.0
+  video_player: ^2.9.2
+  chewie: ^1.8.5
 
 dev_dependencies:
   flutter_test:
@@ -34,6 +36,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/video/
 
   fonts:
     - family: RobotoBlack

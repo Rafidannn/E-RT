@@ -44,8 +44,15 @@ class UserDetailLaporanPage extends StatelessWidget {
     }
 
     String photoUrl = "";
-    if (laporanData['foto_bukti'] != null && laporanData['foto_bukti'].toString().isNotEmpty) {
-       photoUrl = "${ApiUrl.baseUrl}/laporan/${laporanData['foto_bukti']}".trim();
+    if (laporanData['foto_bukti'] != null && laporanData['foto_bukti'].toString().isNotEmpty && laporanData['foto_bukti'].toString() != "Tidak ada foto") {
+       String imageName = laporanData['foto_bukti'].toString();
+       if (imageName.startsWith('uploads/')) {
+           photoUrl = "${ApiUrl.baseUrl}/$imageName".trim();
+       } else if (imageName.startsWith('http')) {
+           photoUrl = imageName;
+       } else {
+           photoUrl = "${ApiUrl.baseUrl}/uploads/$imageName".trim();
+       }
     }
 
     return Scaffold(

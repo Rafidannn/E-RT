@@ -537,7 +537,7 @@ class _UserSuratPageState extends State<UserSuratPage> {
              decoration: BoxDecoration(color: const Color(0xFF8CAF5D), borderRadius: BorderRadius.circular(20)),
              child: const Text("Surat Pengantar", style: TextStyle(color: Color(0xFF0C2B14), fontWeight: FontWeight.bold, fontSize: 13)),
            ),
-           IconButton(icon: const Icon(Icons.person_add_alt_1_outlined, color: Colors.white, size: 26), onPressed: (){}),
+           const SizedBox(width: 40),
         ],
       )
     );

@@ -40,7 +40,16 @@ class UserDetailSuratPage extends StatelessWidget {
 
     String photoUrl = "";
     if (suratData['file_lampiran'] != null && suratData['file_lampiran'].toString().isNotEmpty) {
-       photoUrl = "${ApiUrl.baseUrl}/surat/${suratData['file_lampiran']}".trim();
+       final raw = suratData['file_lampiran'].toString();
+       if (raw.startsWith('http')) {
+         photoUrl = raw;
+       } else if (raw.startsWith('uploads/')) {
+         // format lama: "uploads/filename.jpg" → paksa ke root uploads
+         photoUrl = "${ApiUrl.baseUrl}/${raw}".trim();
+       } else {
+         // format baru: hanya "filename.jpg"
+         photoUrl = "${ApiUrl.baseUrl}/uploads/$raw".trim();
+       }
     }
 
     return Scaffold(

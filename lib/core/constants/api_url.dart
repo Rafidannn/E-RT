@@ -2,7 +2,7 @@ class ApiUrl {
   // Ganti IP ini kalau ngetes pake HP asli (pake IP Wi-Fi Laptop)
   // static const String baseUrl = 'http://192.168.1.XX/api';
   // static const String baseUrl = 'http://192.168.111.173/api';
-  static const String baseUrl = 'http://192.168.1.16/api'; // IP Wi-Fi Laptop
+  static const String baseUrl = 'http://192.168.1.12/api'; // IP Wi-Fi Laptop
   // static const String baseUrl = 'http://10.25.19.114/api'; //Hp Wifi Ghatan
 
   // ===== ENDPOINT AUTH =====
@@ -16,6 +16,7 @@ class ApiUrl {
   // ===== ENDPOINT PENGUMUMAN =====
   static const String pengumuman = '$baseUrl/pengumuman/get.php';
   static const String postPengumuman = '$baseUrl/pengumuman/create.php';
+  static const String getAgenda = '$baseUrl/pengumuman/get_agenda.php';
 
   // ===== ENDPOINT WARGA =====
   static const String getWarga = '$baseUrl/warga/get.php';
@@ -25,6 +26,7 @@ class ApiUrl {
   static const String totalWarga = '$baseUrl/warga/get_total.php';
   static const String totalLansia = '$baseUrl/warga/get_total_lansia.php';
   static const String getProfilByNik = '$baseUrl/warga/get_profil_by_nik.php';
+  static const String getProfilLengkap = '$baseUrl/warga/get_profil_lengkap.php';
   static const String getWargaIuran = '$baseUrl/warga/get_warga.php'; // Dropdown Iuran
   static const String getTanpaKK = '$baseUrl/warga/get_tanpa_kk.php';
 
@@ -70,4 +72,7 @@ class ApiUrl {
   // ===== ENDPOINT SURAT PENGANTAR =====
   static const String postSurat = '$baseUrl/surat/post_surat.php';
   static const String getSurat = '$baseUrl/surat/get_surat.php';
+
+  // ===== ENDPOINT KELUARGA =====
+  static const String getInfoKeluarga = '$baseUrl/keluarga/get_keluarga.php';
 }
